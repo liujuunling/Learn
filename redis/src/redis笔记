@@ -1,0 +1,5 @@
+
+
+————————————————    StringRedisTemplate和RedisTemplate的区别及使用方法
+
+使用时只需使用maven依赖包spring-boot-starter-data-redis即可，然后在service的实现类Imp中注入StringRedisTemplate或者RedisTemplate即可.

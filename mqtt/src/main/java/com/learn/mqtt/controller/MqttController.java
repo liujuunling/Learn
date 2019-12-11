@@ -1,7 +1,7 @@
 package com.learn.mqtt.controller;
 
-import com.learn.mqtt.server.MqttGateways;
-import com.learn.mqtt.server.MqttSenderConfig;
+import com.learn.mqtt.config.MqttGateways;
+import com.learn.mqtt.config.MqttSenderConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;

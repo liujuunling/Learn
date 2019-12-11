@@ -1,4 +1,4 @@
-package com.learn.mqtt.server;
+package com.learn.mqtt.config;
 
 import org.springframework.integration.annotation.MessagingGateway;
 import org.springframework.integration.mqtt.support.MqttHeaders;

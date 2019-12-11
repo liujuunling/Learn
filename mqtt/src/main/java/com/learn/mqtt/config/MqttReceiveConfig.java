@@ -1,5 +1,5 @@
-package com.learn.mqtt.server;
-
+package com.learn.mqtt.config;//package com.hzxy.dyj.config;
+//
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -11,29 +11,23 @@ import org.springframework.integration.core.MessageProducer;
 import org.springframework.integration.mqtt.core.DefaultMqttPahoClientFactory;
 import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
 import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
-import org.springframework.integration.mqtt.outbound.MqttPahoMessageHandler;
 import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.MessagingException;
-import org.springframework.util.StringUtils;
 
 /**
  * 〈一句话功能简述〉<br>
- * 〈MQTT发送消息配置〉
+ * 〈MQTT接收消息处理〉
  *
- * @author AnswerChang
+ * @author lenovo
  * @create 2018/6/4
  * @since 1.0.0
  */
-@Configuration
-@IntegrationComponentScan
-public class MqttSenderConfig {
-
-
-    private MqttPahoMessageDrivenChannelAdapter adapter;
-
+//@Configuration
+//@IntegrationComponentScan
+public class MqttReceiveConfig {
 
     @Value("${spring.mqtt.username}")
     private String username;
@@ -53,37 +47,22 @@ public class MqttSenderConfig {
     @Value("${spring.mqtt.completionTimeout}")
     private int completionTimeout ;   //连接超时
 
+
     @Bean
-    public MqttConnectOptions getMqttConnectOptions(){
-        MqttConnectOptions mqttConnectOptions=new MqttConnectOptions();
-        mqttConnectOptions.setUserName(username);
-        mqttConnectOptions.setPassword(password.toCharArray());
-        mqttConnectOptions.setServerURIs(new String[]{hostUrl});
-        mqttConnectOptions.setKeepAliveInterval(2);
-        return mqttConnectOptions;
+    public MqttConnectOptions getMqttConnectOptionss(){
+        MqttConnectOptions mqttConnectOptionsss=new MqttConnectOptions();
+        mqttConnectOptionsss.setUserName(username);
+        mqttConnectOptionsss.setPassword(password.toCharArray());
+        mqttConnectOptionsss.setServerURIs(new String[]{hostUrl});
+        mqttConnectOptionsss.setKeepAliveInterval(2);
+        return mqttConnectOptionsss;
     }
     @Bean
-    public MqttPahoClientFactory mqttClientFactory() {
-        DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
-        factory.setConnectionOptions(getMqttConnectOptions());
-        return factory;
+    public MqttPahoClientFactory mqttClientFactorys() {
+        DefaultMqttPahoClientFactory factorysss = new DefaultMqttPahoClientFactory();
+        factorysss.setConnectionOptions(getMqttConnectOptionss());
+        return factorysss;
     }
-    @Bean
-    @ServiceActivator(inputChannel = "mqttOutboundChannel")
-    public MessageHandler mqttOutbound() {
-        MqttPahoMessageHandler messageHandler =  new MqttPahoMessageHandler(clientId, mqttClientFactory());
-        messageHandler.setAsync(true);
-        messageHandler.setDefaultTopic(defaultTopic);
-        return messageHandler;
-    }
-    @Bean
-    public MessageChannel mqttOutboundChannel() {
-        return new DirectChannel();
-    }
-
-
-
-
 
     //接收通道
     @Bean
@@ -94,13 +73,9 @@ public class MqttSenderConfig {
     //配置client,监听的topic
     @Bean
     public MessageProducer inbound() {
-        adapter = new MqttPahoMessageDrivenChannelAdapter(clientId+"_inbound", mqttClientFactory(), "");
-        String[] topics = defaultTopic.split(",");  //监听默认topic（配置文件）
-        for(String topic : topics){
-            if (!StringUtils.isEmpty(topic)){
-                adapter.addTopic(topic,1);
-            }
-        }
+        MqttPahoMessageDrivenChannelAdapter adapter =
+                new MqttPahoMessageDrivenChannelAdapter(clientId+"_inbound", mqttClientFactorys(),
+                        "hello","hello1");
         adapter.setCompletionTimeout(completionTimeout);
         adapter.setConverter(new DefaultPahoMessageConverter());
         adapter.setQos(1);
@@ -124,33 +99,5 @@ public class MqttSenderConfig {
                 }
             }
         };
-    }
-
-
-    /**
-     * 添加监听主题 topic
-     * 从4.1版本开始，是可能的。提供方法addTopic()与removeTopic()改变主题会在下一次连接建立时生效。
-     * @param topicAir
-     */
-    public void addListenTopic(String[] topicAir){
-        if(adapter != null){
-            adapter = new MqttPahoMessageDrivenChannelAdapter(clientId+"_inbound", mqttClientFactory(), "");
-        }
-        for (String topic : topicAir){
-            adapter.addTopic(topic,1);
-        }
-        adapter.removeTopic();
-    }
-
-
-    /**
-     * 移除监听主题 topic
-     * @param topic
-     */
-    public void removeListenTopic(String topic){
-        if (adapter != null){
-            adapter = new MqttPahoMessageDrivenChannelAdapter(clientId+"_inbound", mqttClientFactory(), "");
-        }
-        adapter.removeTopic(topic);
     }
 }
