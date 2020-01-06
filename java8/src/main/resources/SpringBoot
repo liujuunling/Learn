@@ -1,0 +1,27 @@
+sprinboot
+当控制器 返回 一个逻辑名称的时候，是没有办法直接对应找到视图的，这就需要视图解析器进行解析了。
+最常用的视图之一就是JSP，需要在pom文件中新增JSP和JSTL的maven的依赖配置
+
+
+
+然后在properties文件中修改代码
+server.port = 8090
+spring.mvc.view.prefix = /WEB-INF/jsp/
+spring.mvc.view.suffix = .jsp
+
+
+
+@Component("user") 将实体类 注入到Spring IOC容器中
+
+消除歧义性
+优先 使用 @Primary
+具体的值  @Qualifier
+
+@Autowired 注解可以直接用在带有参数的构造方法类   的 构造方法上
+
+@PropertySource(value="{classpath:jdbc.properties}",ignoreResourceNotFound=true)  //ignoreResourceNotFound 忽略配置文件找不到的问题
+
+条件装配Bean
+@Conditional(DatabaseConditional.class)
+
+DatabaseConditional类需要实现Condition接口

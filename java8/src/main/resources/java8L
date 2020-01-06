@@ -1,0 +1,594 @@
+
+java8新增了函数 ——值的一种新形式，有助于使用 流  ，可以进行多核处理器上的并行编程。
+编程语言的整个目的就在于操作值，因此这些 值 被称为一等值（或一等公民，这个术语是从20世纪60年代美国民权运动中借用来的）
+编程的其他机构也许有助于我们表示值得结构，但在程序执行期间不能传递，因而是二等公民。
+
+方法和Lambda 作为一等公民
+java8第一个新功能——方法引用
+//找出一个目录下的所有隐藏文件
+    File[] hiddenFiles = new File(".").listFiles(new FileFilter(){
+        public boolean accept(File file){
+            return  file.isHidden();
+        }
+    });
+
+ //方法引用  直接将File的Hidden方法 作为参数传递给listFiles方法。 此时的isHidden方法不再是二等值，而是一定值
+    File[] hiddenFiles2 = new File(".").listFiles(File::isHidden);
+
+
+Lambda——匿名函数
+除了允许（命名）函数成为一等值外，Java8还体现了更广义的将函数作为值得思想，包括Lambda（或匿名函数）。比如，你现在可以写(int x) -> x+1，表示“调用时给定参数x，就返回x+1值的函数”。
+你可能会想这有什么必要呢？以为你可以在MyMathsUtils类里面定义一个add1的方法，然后写MyMathsUtils::add1嘛！确实是可以，但要是你没有方便的方法和类可用，新的Lambda语法更简洁。
+
+当一些方法只是用一两次或很少次的 时候，就可以直接用Lambda表达式
+filterApples(listApples,(Apple a) -> "green".equals(a.getColor()) );
+
+本来Java8加上 filter 和几个相关的东西作为通用库方法就足以让人满意了，比如
+static <T> Collection<T> filter (Collection<T> c, Predicate<T> p);
+这样你甚至都不需要写filterApples了，因为比如先前的调用
+filterApples(listApples,(Apple a) -> "green".equals(a.getColor()) );
+就可以直接调用库的方法filter：
+filter(listApples,(Apple a) -> "green".equals(a.getColor()) );
+
+但是，为了更好地利用并行，Java的设计师没有这么做。Java8中有一整套新的类 集合API —— Stream，它有一套函数式程序员熟悉的、类似于filter的操作，比如map、reduce，还有
+我们接下来要讨论的在Collections和Streams之间做转换的方法
+for—each循环处理list筛选出金额较高的交易。
+比较复杂，略
+
+使用Stream API
+import static java.util.stream.Collections.toList;
+Map<Currency,List<Transaction>> transactionsByCurrencies = transactions.stream()
+                                                                       .filter((Transaction t) -> t.getPrice() >1000)
+                                                                       .collect(groupingBy(Tramsaction :: getCurrency));
+使用for—each循环一个个去迭代元素，然后再处理元素。我们把这种数据迭代的方式成为  外部迭代。
+相反，有了Stream API，你根本不用操心循环的事情。数据处理完全是在库内部进行的，这种思想成为  内部迭代。
+
+Java8 对接口提供了default 修饰符 表示 方法默认的实现方式    提供给库设计师
+
+
+软件工程原则 : DRY  不要重复自己的代码
+
+
+行为参数化：写一个方法，传入一个对象，此方法实现对这个参数对象的逻辑判断。
+例如：
+public boolean test(Apple apple){
+   return "red".equals(apple.getColor)
+}
+
+把一个行为（一段代码）封装起来，并通过传递和使用创建的行为（例如对Apple的不同谓词）将方法的行为参数化。
+
+
+
+
+                                     Lambda示例
+   布尔表达式                                          (List<String> list) -> list.isEmpty()
+   创建对象                                            () -> new Apple(10);
+   消费一个对象                                        (Apple a) -> {
+                                                                system.out.println(a.getWeight())
+                                                                }
+   从一个对象中选择/抽取                               (String s) -> s.length();
+   组合两个值                                          (int a, int b) -> a * b
+   比较两个对象
+   (Apple a1, Apple a2) -> a1.getWeight().compareTo(a2.getWeight())
+
+
+函数式接口
+函数式接口就是只定义一个抽象方法的接口。例如我们在第2章中谈到的Comparator 和 Runnable。
+public interface Comparator<T>{
+     int compare(T o1, T o2)      ;
+}
+
+public interface Runable{
+     void run();
+}
+
+函数式接口可以干什么呢？
+Lambda表达式允许你直接以内联的刑事为函数式接口的抽象方法提供实现，并把整个表达式作为函数式接口的实例（具体说来，是函数式接口一个具体实现的实例）。
+
+Runnable r1 = () -> System.out.println("Hello World 1");
+
+process(() -> System.out.println("Hello World 3 "));    //利用直接传递的Lambda打印“Hello World 3”
+
+
+函数描述符
+函数式接口的抽象方法的签名基本上就是Lambda表达式的签名。我们将这种抽象方法称为函数描述符。
+
+
+
+
+Java的类型 要么是引用类型（比如Byte、Integer、Object、List），要么是原始类型（  比如int、double、byte、char）
+但是泛型（比如Consumer<T>中的T）只能绑定到引用类型。所以会用到java的装箱 与 拆箱 。不过这样会在性能方面付出代价。
+所以Java8位我们前面所说的函数式接口带来了一个专门的版本，以便在输入和输出都是原始类型时避免自动装箱的操作。
+
+
+
+Lambda付诸实践：环绕执行模式
+
+Lambda语法
+(parameters)->expression 或者 (parameters)->{statements;}
+Lambda表达式由三部分组成：
+1.parameters:类似方法中的形参列表，这里的参数是函数式接口里的参数。这里的参数类型可以明确的声明也可不声明而由JVM隐含的推断，当只有一个推断类型时可以省略掉圆括号。
+2.-> :可以理解为“被用于”的意思
+3.方法体：可以是表达式也可以是代码块，实现函数式接口中的方法。这个方法体可以有返回值也可以没有返回值
+
+
+设置和清理代码  环绕业务代码
+public static String processFile() throws IOException{
+ try(BufferedReader br = new BufferedReader(new FileReader("data.txt"){
+  return br.readLine();              //有用的业务代码
+ }
+ }
+}
+
+第一步：把行为参数化  (BufferedReader br) -> br.readLine() + br.readLine() Lambda表达式
+String result = processFile( (BufferedReader br) -> br.readLine() + br.readLine());
+第二步：使用函数式接口来传递行为
+//Lambda表达式仅可用于上下文是函数式接口的情况，需要创建一个能匹配BufferedReader -> String ，还可以抛出IOException异常的接口。
+写一个接口为
+@FunctionalInterface   //将接口标志为函数是接口 ，如果接口不符合，会报错
+public interface BufferedReaderProcess{
+    String process (BufferedReader b ) throws IOException;
+}
+现在就可以把这个接口作为新的processFile方法的参数了：
+public static String processFile(BufferedReaderProcess p) throws IOException{
+....
+}
+
+
+第三步： 执行一个行为   此处的行为是接口的抽象方法，在具体的业务场景中可以通过传递不同的Lambda表达式作为函数式接口的实现来实现不同的业务功能
+任何BufferedReader -> String 形式的Lambda都可以作为参数来传递到上面接口中
+public static String processFile(BufferedReaderProcess p) throws IOException{
+  try(BufferedReader br = new BufferedReader(new FileReader("data.txt"){
+   return p.process(br);             //  有用的业务代码 处理BufferedReader对象  new BufferedReader()是构造方法，返回一个BufferedReader对象作为process的参数
+                                    //所以只要是 BufferedReader ->String 格式的Lambda 都可以作为参数传递给processFile方法
+  }
+}
+第四步：传递Lambda
+现在就可以通过传递不同的Lambda来重用processFile方法，并以不同的方式处理文件了。
+
+处理一行：
+   String  oneline = processFile( (BufferedReader br ) -> br.readLine);
+
+处理两行：
+   String twoLines = processFile( (BufferedReader br ) -> br.readLine + br.readLine );
+
+
+
+   在上面是如何利用函数式接口来传递Lambda，但是还要自定义接口，下面来学习使用 java8 提供的新接口，通过重用它来传递多个不同的Lambda
+
+ 使用 java8提供的函数式接口时，需要自定义方法，把函数式接口作为参数，然后在调用的时候就可以传入不同的Lambda表达式来实现函数式接口，完成不同的业务
+
+ 常用的函数式接口
+
+  Predicate
+
+  @FunctionalInterface
+  public interface Predicate<T>{
+    boolean test(T t);
+  }
+
+  public static <T> List<T> filter(List<T> list, Predicate<T> p){
+        List<T> results = new ArrayList<>();
+        for(T s : list){
+          if(p.test(s)){
+             results.add(s);
+          }
+        }
+   return results;
+  }
+
+  Predicate <String>  nonEmptyStringPredicate = (String s) -> !s.isEmpty();
+  List<String> nonEmpty  = filter (listOfStrings ,nonEmptyStringPredicate);
+
+
+
+  方法引用 ::
+  方法引用让你可以重复使用现有的方法定义，并像Lambda一样传递它们。比起使用Lambda表达式，它们似乎更易读，感觉也更自然。
+  方法引用可以被看做仅仅调用特定方法的Lambda的一种快捷写法。
+  使用方法引用时，目标引用放在分隔符 ::前，方法的名称放在后面。例如，Apple :: getWeight 就是引用了Apple类中定义的方法getWeight。
+  请记住，不需要括号，因为你没有实际调用这个方法。
+
+ee
+
+
+  先前：使用Lambda
+  inventory.sort( (Apple a1,Apple a2) -> a1.getWeight().compareTo(a2.getWeight()));
+
+  之后(使用方法引用 和 java.util.Comparator.comparing)
+  inventory.sort(comparing(Apple::getWeight))      //inventory 是List<Apple> 集合
+
+
+  如何构建方法引用
+  方法引用主要有三类
+  (1)指向静态方法的方法引用 (例如 Integer的parseInt方法，写作Integer::parseInt)     类似于 ClassName.staticMethod
+  (2)指向任意类型实例方法的方法引用（String的length方法，写作：String::length）
+  (3)指向现有对象的实例方法的方法引用(假设有一个局部变量expensiveTransaction用于存放Transaction类型的对象，它支持实例方法getValue,
+      那么就可以写expensiveTransaction :: getValue)
+
+  类似于String::length的第二种方法引用的思想就是你在引用一个对象的方法，而这个对象本身是Lambda的一个参数。例如，Lambda表达式
+  （String a) -> s.toUppeCase() 可以写作String::toUpperCase.
+  但第三种方法引用指的是，你在Lambda中调用一个已经存在的尾部对象的方法。例如，Lambda表达式()->expensiveTransaction.getValue() 可以写作
+  expensiveTransaction::getValue
+
+
+ 第四章  引入流 stream
+java8中的集合支持一个新的stream方法，它会返回一个流
+
+ 流  -----  从支持数据处理操作的源生成的元素序列
+
+ 元素序列 --- 就像集合一样，流也提供了一个接口，可以访问特定元素类型的一组有序值。 集合讲的是数据，流讲的是计算
+
+ 源 ---流会使用一个提供数据的源，如集合、数组或输入/输出资源。请注意，从有序集合生成流时会保留原来的顺序。
+          由列表生成的流，其元素顺序与列表一致
+
+ 数据处理操纵 --- 流的数据处理功能支持类似于数据库的操作，以及函数式编程语言中的常用操作，如filter、map、reduce、find、match、和sort
+                  流操作可以顺序执行，也可以并行执行
+
+ 流操作的两大重要特点
+1.流水线 --- 很多流操作本身会返回一个流，这样多个操作就可以连接起来，形成一个流水线
+2.内部迭代 --- 与使用迭代器显示迭代的集合不同，流的迭代操作实在背后进行的。
+
+Stream API可以写出这样的代码
+1.声明性  -----更简洁，更易读
+2.可复合  -----更灵活
+3.可并行 ------性能更好
+
+List<String> threeHighCaloricDishNames = menu.stream()
+                                                      .filter(d -> d.getCalories() > 300)
+                                                      .map(Dish :: getName)
+                                                      .limit(3)
+                                                      .collect(toList());
+
+
+    流只能消费一次
+    流是内部迭代
+    集合是外部迭代
+
+    流 操作
+    filter、map和limit可以连成一条流水线
+    collect触发流水线执行并关闭它
+可以连接起来的流操作称为  中间操作
+关闭流的操作成为 终端操作
+
+
+
+用谓词筛选
+.filter(Dish :: isVegetarin) //筛选素食菜单
+
+筛选各异的元素 （去重）
+.filter(i->i%2==0)  //筛选偶数 两个组合起来
+.distinct()
+
+截短流
+.limit(3)  //前三个
+跳过元素
+.skip(2)   //跳过前2个
+
+******映射******
+一个非常常见的数据处理套路就是从某些对象中选择信息。比如在SQL里，可以从表中选择一列 作为一个List
+
+对流中的每一个元素 应用函数
+流支持map方法，他会接受一个函数作为参数，这个函数会被应用到每个元素上，并将其映射成一个新的元素
+
+提取菜名的长度
+List<Integer> dishNameLengths = menu.stream()
+                                    .map(Dish :: getName)
+                                    .map(String ::length)
+                                    .collect(toList());
+
+流的扁平化  flatMap
+给定单词列表["Hello","World"]
+想要返回["H","e","l","o","W","r","d"]
+
+List<String> uniqueCharacters = words.stream()
+                                     .map(w -> w.split(""))               //将每个单词转换为由其字母构成的数组
+                                     .flatMap(Arrays::stream)             //将各个生成流 扁平化为单个流
+                                     .distinct()
+                                     .collect(Collections.toList());
+
+使用flatMap方法的效果是，各个数组并不是分别映射成一个流，而是映射成流的内容。
+
+给定列表[1,2,3]和[3,4]
+想要返回[(1,3),(1,4),(2,3),(2,4),(3,3),(3,4)]
+为简单起见，可以用有两个元素的数组来代表数对
+List<Integer> num1 = Arrays.asList(1,2,3);
+List<Integer> num2 = Arrays.asList(3,4)
+List<int[]> pairs = num1.stream()
+                        .flatMap( i -> num2.stream()
+                                           .map(j -> new int[]{i,j})
+                        .collect(toList());
+ 只返回总和能被3整除的数对
+ List<int[]> pairs = num1.stream()
+                         .flatMap( i -> num2.stream()
+                                            .filter(j -> (i + j) % 3 == 0)
+                                            .map(j -> new int[]{i,j})
+                         .collect(toList());
+
+  查找和匹配
+  检查谓词是否至少匹配一个元素
+  anyMatch()  返回boolean 因此是一个终端操作
+  if(menu.stream().anyMatch(Dish::isVegetarian){
+   sout("菜单中有素菜")
+  }
+
+  检查谓词是否匹配所有元素
+  allMatch()
+  查看所有菜品是否有利于健康（热量低于1000）
+  boolean isHealthy = menu.steam().allMatch(d -> d.getCalories() < 1000)
+
+  noneMatch()  确保流中没有任何元素与给定的谓词匹配
+
+  anyMatch 、allMatch 、noneMatch 三个操作就是 所谓的短路
+
+  查找元素
+  findAny方法将返回当前流中的任意元素，它可以与其它流操作结合使用
+  Optional<Dish> dish = menu.stream()
+                            .filter(Dish :: isVegetarian)
+                            .findAny();
+  流水线将在后台进行优化使其只需走一遍，并利用短路找到结果是立即结束
+  Optional简介
+  Optional<T> 类(java.util.Optional)是一个容器类，代表一个值存在或不存在。
+  Optional里面几种可以迫使你显示地检查值是否存在或处理值不存在的情形
+  isPresent() 将在Optional包含值的时候返回true，否则返回false
+  ifPresent(Consumer<T> block)会在值存在的时候执行给定的代码块。
+
+  查找第一个元素
+  findFirst()
+
+  归约    优势 支持并行
+
+  求和
+  int sum = numbers.stream().reduce(0,Integer:sum)
+
+  int sum = numbers.parellelStream().reduce(0,Integer:sum)
+  并行执行这段代码要付出一定代价。传递给reuce的Lambda不能更改状态(如实例变量)，
+                                                          而且操作必须满足结合律才可以按任意顺序执行
+reduce接受两个参数
+1.一个初始值
+2.一个Lambda来把两个流元素结合起来产生一个新值
+   reduce还有一个重载的变体，它不接受初始值，但是会返回一个Optional对象
+   Optional <Integer> sum = numbers.stream().reduce((a,b) -> (a + b));
+
+  考虑流中没有任何元素的情况。reduce操作无法返回其和，因为它没有初始值。所以要包裹在Optional对象里
+
+  最大值 和 最小值
+  Optional <Integer> max = numbers.stream().reduce(Integer::max);  //(x > y)? x : y
+
+  用map和reduce方法数一数流中有多少个菜
+  int count = menu.stream()
+                  .map(d -> 1)
+                  .reduce(0, (a,b) -> a + b);
+
+流操作： 无状态和有状态
+只要在从集合生成流的时候把Stream换成parallelStream就可以实现并行
+
+流支持min和max方法，它们可以将接受一个Comparator作为参数，置顶计算最小或最大时要比较那个键值
+Optional <Transaction> smallestTransaction = transactions.stream()
+                                                         .min(comparing(Transaction :: getValue))
+
+
+数值流
+使用reduce方法可以计算流中元素的总和，例如:求菜单的热量
+int calories = meau.stream()
+                   .map(Dish :: getCalories)
+                   .reduce(0,Integer::sum)
+这段代码的问题时，它有一个暗含的装箱成本。每个Integer都必须拆箱成一个原始类型，在进行求和。要是可以直接像下面这样调用sum方法，岂不是更好？
+int calories = meau.stream()
+                   .map(Dish :: getCalories)
+                   .sum()
+但这是不可能的，问题在于map方法会生成一个Stream<T>。虽然流中的元素是Integer类型，但Stream接口并没有定义sum方法。为什么没用呢？
+比方说，你只有一个像meau那样的Stream<Dish>，把各种菜加起来是没有任何意义的。但不要担心，Stream API还提供了原始类型流特化，专门支持处理数值流的方法。
+
+********  原始类型流特化  ********
+Java8引入了三个原始类型流特化接口来解决这个问题 ： IntStream、 DoubleStream 、 LongStream  ，分别将流中的元素特化为int、doule和long。从而避免了
+暗含的装箱成本。 每个接口都带来了进行常用数值归约的新方法，比如对数值流求和的sum，找到最大元素的max。此外 。。。 P101
+
+映射到数值流
+将流转换为特化版本的常用方法是mapToInt、mapToDouble和mapToLong，
+int calories = meau.stream()
+                   .mapToInt(Dish::getCalories)
+                   .sum()
+转换回对象流
+IntStream inStream = menu.stream().mapToInt(Dish::getCalories);          //将stream转换为数值流
+Stream<Integer> stream = intStream.boxed();                     //将数值流转换为Stream
+
+你在下一节中会看到，在需要 将数值范围装箱为一个一般流时，boxed尤为有用
+
+默认值OptionalInt
+求和的那个例子很容易，因为它有一个默认值：0.但是如果要计算IntStream中的最大值，就得换个法子了，因为0是错误的结果 。
+如何区分没有元素的流和最大值是0的流呢？
+Optional也分别有一个原始类型特化版本：OptionalInt 、OptionalDouble 、 OptionalLong
+例如，要找到IntStream中的最大元素，可以调用max方法，它会返回一个OptionalInt :
+OptionalInt maxCalories = menu..stream()
+                               .mapToInt(Dish :: getCalories)
+                               .max();
+如果没有最大值的话，你就可以显示处理OptionalInt去定义一个默认值了：
+int max = maxCalories.orElse(1);
+
+数值范围
+range     不包含结束值
+rangeClosed      包含结束值
+
+
+
+
+
+构建流
+由值创建流
+使用静态方法Stream.of
+Stream<String> stream = Stream.of("Java8","Lambda","In","Action");
+stream.map(String::toUpperCase).forEach(System.out :: println)
+
+
+  预定义收集器
+  Collectors类提供了工厂方法(例如groupingBy)创建的收集器，三大功能:
+  1.将元素归约和汇总为一个值】
+  2.元素分组
+  3.元素分区
+
+  先看看可以进行归约和汇总的 收集器，它们在很多场合下都很方便，比如 求总交易额
+
+  归约和汇总
+  利用counting工厂方法返回的收集器，数一数菜单里有多少菜
+  long howManyDishes = menu.stream().collect(Collectors,counting());
+  还可以写的更为直接：
+  long howManyDishes  = menu.stream().count();
+
+  查找流中的最大值和最小值
+  Collectors.maxBy   和 Collectors.minBy
+
+  Comparator<Dish> dishCalories  = Comparator.comparingInt(Dish::getCalories);
+
+  Optional<Dish> mostCalorieDish = menu.stream.collect(maxBy(dishCalories));
+  \\
+  汇总
+  int totalCalories = menu.stream().collect(summingInt(Dish::getCalories)); 求和  在遍历流时，会把每一道菜都映射为其热量，然后把这个数字累加到一个累加器。
+
+  汇总不仅仅时求和：还有collectors.averagngInt,计算平均值
+  double avgCalories = menu.stream().collect(averagInt(Dish::getCalories))
+
+  如果像一次操作就获取总和、平均值、最大值、最小值，就可以使用summarizingInt工厂方法返回的收集器
+  IntSummaryStatistics menuStatistics = menu.stream().collect(summarizingInt(Dish :: getCalories))
+  这个收集器会把所有信息收集到一个叫IntSummaryStatistics的类里，它提供了方便的取值（getter）方法来访问结果
+  打印menuStatisticobject会得到以下输出
+   IntSummaryStatustucs{count = 9 ,sum=4300,min=120,average=477.777778, max=800}/
+
+  连接字符串
+joining工厂方法
+String shortMenu = menu.stream().map(Dish ::getName).collect(joining());
+
+如果Dish类有一个toString方法来返回菜肴的名称
+汇总 使用 joining()
+String sm = menu.stream().collect(joining());
+
+collect方法特别适合表达可变容器上的归约，更关键的是它适合并行操作。 对数据进行归约
+
+分组
+使用Collectors.groupingBy工厂方法返回的收集器
+按照菜的类型进行分类
+Map<Dish.Type,List<Dish> > dishesByType = menu.stream().collect(groupBy(Dish:;getType));
+其结果是
+{OTHER=[Dish{name='french fries', vegetarian=true, calories=530, type=OTHER}, Dish{name='rice', vegetarian=true, calories=350, type=OTHER}, Dish{name='season fruit', vegetarian=true, calories=120, type=OTHER}, Dish{name='pizza', vegetarian=true, calories=550, type=OTHER}], FISH=[Dish{name='prawns', vegetarian=false, calories=300, type=FISH}, Dish{name='salmon', vegetarian=false, calories=450, type=FISH}], MEAT=[Dish{name='pork', vegetarian=false, calories=800, type=MEAT}, Dish{name='beef', vegetarian=false, calories=700, type=MEAT}, Dish{name='chicken', vegetarian=false, calories=400, type=MEAT}]}
+
+
+给groupingBy方法传递了一个Function(以方法引用的形式)，这个Functiion叫做分类函数。
+分类函数也可以是Lambda表达式
+
+public enum CaloricLevel{DIET, NORMAL, FAT}
+
+        Map<Dish.CaloricLevel,List<Dish>> dishesByCaloricLevel = menu.stream().collect(
+                groupingBy(dish -> {
+                    if (dish.getCalories() <= 400) return Dish.CaloricLevel.DIET;
+                    else if (dish.getCalories() <= 700) return Dish.CaloricLevel.NORMAL;
+                    else return Dish.CaloricLevel.FAT;
+                }
+         )
+
+);
+
+多级分组
+使用一个有双参数版本的Collectors.groupingBy工厂方法创建的收集器
+它除了普通的分类函数之外，还可以接受collector类型的第二参数。
+那么要进行二级分组的话，我们可以把一个内层groupingBy传递给外层groupingBy,并定义一个为流中项目分类的二级标准。
+        //多级分组
+        Map <Dish.Type,Map<Dish.CaloricLevel,List<Dish>>> dishesByTypeCaloricLevel = menu.stream().collect(
+                groupingBy(Dish::getType,
+                        groupingBy(dish -> {
+                            if (dish.getCalories() <= 400) return Dish.CaloricLevel.DIET;
+                            else if (dish.getCalories() <= 700) return Dish.CaloricLevel.NORMAL;
+                            else return Dish.CaloricLevel.FAT;
+                        }))
+        );
+传递给第一个groupingBy的第二个收集器可以是任何类型，不一定是另一个groupingBy。
+例如，要数一数菜单中每个菜有多少个。可以传递counting收集器作为groupingBy收集器的第二个参数：
+        //使用counting收集器 作为groupingBy的第二个参数
+        Map<Dish.Type,Long> typeCount = menu.stream().collect(
+                groupingBy(Dish :: getType,counting())
+        );
+
+reducing 收集器永远不会返回Optional.empty()
+1.把收集器的结果转换为另一种类型
+ 因为分组操作的Map结果中的每个值上包装的Optional没什么用，所以想要把它们去掉，就是用下面滴方法：
+使用Collectors.collectingAndThen工厂方法返回的收集器
+        Map<Dish.Type,Dish> mostCaloricByType = menu.stream().collect(
+                groupingBy(Dish::getType,collectingAndThen(
+                        maxBy(comparingInt(Dish::getCalories)),Optional::get
+                ))
+        );
+
+2.与groupingBy联合使用的其他收集器的例子
+查看： 对于每种类型的Dish，菜单中都有哪些CaloricLevel,我们可以把grouping和mapping收集器结合起来
+        Map<Dish.Type,Set<Dish.CaloricLevel>> caloricLevelByType = menu.stream().collect(
+          groupingBy(Dish::getType,mapping(
+                  dish -> {if (dish.getCalories()<=400) return Dish.CaloricLevel.DIET;
+                  else if (dish.getCalories() <=700) return Dish.CaloricLevel.NORMAL;
+                  else return Dish.CaloricLevel.FAT;
+                  }, toSet()
+          ))
+        );
+
+以上示例中，对于返回的Set是什么类型并没有任何保证。但可以通过使用toCollection,你就可以有更多的控制。
+例如，你可以给它传递一个构造函数引用来要求HashSet
+        Map<Dish.Type,Set<Dish.CaloricLevel>> caloricLevelByType = menu.stream().collect(
+          groupingBy(Dish::getType,mapping(
+                  dish -> {if (dish.getCalories()<=400) return Dish.CaloricLevel.DIET;
+                  else if (dish.getCalories() <=700) return Dish.CaloricLevel.NORMAL;
+                  else return Dish.CaloricLevel.FAT;
+                  }, toCollection(HashSet::new)
+          ))
+        );
+
+分区       partitioningBy
+        Map<Boolean,List<Dish>> partitionedMenu = menu.stream().collect(
+                partitioningBy(Dish::isVegetarian)
+        );
+
+        分区的优势
+        分区的好处在于保留了分区函数返回true或false两套流元素列表
+
+  收集器接口          //自定义集合器时需要实现
+  Collector  接口
+  public interface Collector<T,A,R>{
+         Supplier<A> supplier();
+         BiConsumer<A,T> accumulator;
+         Function<A,R> finisher();
+         BinaryOperator<A> combiner();
+         Set<Characteristice> characteristics;
+  }
+
+  理解Collector接口声明的方法
+  1.建立新的结果容器： supplier方法
+   supplier方法必须返回一个结果为空的Supplier,也就是一个无参数函数，在调用时它会创建一个空的累加器实例，供数据数据收集过程使用。
+   比如ToListConllector ,在对空流执行操作时，这个空的累加器也代表了收集过程的结果。
+   public Supplier<list<T>> supplier(){
+          return () -> new ArrayList<T>();
+   }
+   或传递一个构造函数引用
+   public Supplier<List<T>> supplier(){
+         return ArrayList::new;
+    }
+
+    2.将元素添加到结果容器: accumulator方法
+    accumulator方法会返回执行归约操作的函数。
+    public BiConsumer<List<T>,T>  accumulator(){
+           return(list,item) -> list.add(item);
+    }
+    或
+     public BiConsumer<List<T>,T>  accumulator(){
+            return list :: add;
+     }
+     }
+     3.对结果容器应用最终转换：finisher方法
+     在遍历完流后，finisher方法必须返回在累积过程的最后要调用的一个函数，以便将累加器对象转换为整个集合操作的最终结果。
+     通常，就像ToListCollector的情况一样，累加器对象恰好符合预期的最终结果，因此无需进行转换。
+     所以finisher方法只需返回identity函数；
+
+     public Function <List<T>, List<T>> finisher(){
+           return Function.identity();
+      }
+
+     4，合并两个结果容器： combiner方法
+     combiner方法会返回一个供归约操作使用的函数，它定义了对流的各个字部份进行并行处理时，
+
+
+

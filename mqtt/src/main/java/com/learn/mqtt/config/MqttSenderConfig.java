@@ -21,7 +21,7 @@ import org.springframework.util.StringUtils;
 
 /**
  * 〈一句话功能简述〉<br>
- * 〈MQTT发送消息配置〉
+ * 〈MQTT发送消息配置  和 接收消息配置〉
  *
  * @author AnswerChang
  * @create 2018/6/4
@@ -31,9 +31,7 @@ import org.springframework.util.StringUtils;
 @IntegrationComponentScan
 public class MqttSenderConfig {
 
-
     private MqttPahoMessageDrivenChannelAdapter adapter;
-
 
     @Value("${spring.mqtt.username}")
     private String username;
@@ -53,15 +51,30 @@ public class MqttSenderConfig {
     @Value("${spring.mqtt.completionTimeout}")
     private int completionTimeout ;   //连接超时
 
+    /**
+     * MQTT连接器选项
+     */
     @Bean
     public MqttConnectOptions getMqttConnectOptions(){
         MqttConnectOptions mqttConnectOptions=new MqttConnectOptions();
-        mqttConnectOptions.setUserName(username);
+        // 设置连接的用户名
+        if(!username.trim().equals("")){
+            mqttConnectOptions.setUserName(username);
+        }
+        // 设置连接的密码
         mqttConnectOptions.setPassword(password.toCharArray());
-        mqttConnectOptions.setServerURIs(new String[]{hostUrl});
+        // 设置连接的地址
+        System.out.println("{hostUrl} =========" + hostUrl);
+        mqttConnectOptions.setServerURIs(hostUrl.split(","));
+        System.out.println("new String[]{hostUrl} =========" + new String[]{hostUrl}.length);
+        // 设置会话心跳时间 单位为秒 服务器会每隔1.5*20秒的时间向客户端发送心跳判断客户端是否在线
+        // 但这个方法并没有重连的机制
         mqttConnectOptions.setKeepAliveInterval(2);
         return mqttConnectOptions;
     }
+    /**
+     * MQTT客户端
+     */
     @Bean
     public MqttPahoClientFactory mqttClientFactory() {
         DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();

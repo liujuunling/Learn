@@ -5,7 +5,9 @@ import com.learn.mqtt.config.MqttSenderConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 
+@RestController
 public class MqttController {
 
 
@@ -14,7 +16,7 @@ public class MqttController {
     @Autowired
     private MqttGateways mqttGateway;
 
-    @RequestMapping(value = "/test/sendMqtt.do",method = RequestMethod.POST)
+    @RequestMapping(value = "/test/sendMqtt",method = RequestMethod.POST)
     public String sendMqtt(String  sendData){
         mqttGateway.sendToMqtt(sendData,"jqr");
         return "OK";
